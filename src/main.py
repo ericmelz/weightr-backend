@@ -23,6 +23,11 @@ def hello():
     return "hello"
 
 
+@app.get("/withings-callback")
+def withings_callback():
+    return "withings callback!"
+
+
 @app.get("/login")
 def login():
     params = {
