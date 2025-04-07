@@ -1,4 +1,5 @@
-import logging
+from pydantic import BaseModel
+from typing import List, Tuple
 import logging.config
 import os
 import uuid
@@ -11,6 +12,16 @@ from fastapi import HTTPException
 from fastapi.responses import RedirectResponse, JSONResponse
 from pydantic_settings import BaseSettings
 
+
+class WeightRecord(BaseModel):
+    timestamp: int
+    weight_lbs: float
+
+
+class ErrorResponse(BaseModel):
+    error: str
+
+
 app_env = os.getenv("APP_ENV", "dev")
 with open(f"../conf/logging/{app_env}.yaml", "r") as f:
     config = yaml.safe_load(f)
@@ -20,7 +31,20 @@ logger = logging.getLogger("app")
 
 logger.info("Starting weightr-backend...")
 
-app = FastAPI()
+app = FastAPI(
+    title="Weightr Backend",
+    description="API backend for the Weightr weight-loss app, integrating Withings for biometric data.",
+    version="1.0.0",
+    contact={
+        "name": "Eric Melz",
+        "url": "https://perfin.ai",
+        "email": "eric@perfin.ai"
+    },
+    license_info={
+        "name": "MIT License",
+        "url": "https://opensource.org/licenses/MIT"
+    }
+)
 
 SESSIONS = {}
 
@@ -39,8 +63,17 @@ class Settings(BaseSettings):
 settings = Settings()
 
 
-@app.get("/withings-login")
+@app.get(
+    "/withings-login",
+    summary="Start Withings OAuth2 login flow",
+    description="Redirects the user to Withings for OAuth2 login and authorization.",
+    tags=["Auth"],
+    responses={
+        307: {"description": "Temporary redirect to Withings login page"}
+    }
+)
 def withings_login():
+    """Redirect user to Withings login."""
     logger.debug("Initiating withings-login")
     params = {
         "response_type": "code",
@@ -54,8 +87,19 @@ def withings_login():
     return RedirectResponse(url)
 
 
-@app.get("/withings-callback")
+@app.get(
+    "/withings-callback",
+    summary="Handle OAuth2 callback from Withings",
+    description="Exchanges the code from Withings for access/refresh tokens and creates a session ID.",
+    tags=["Auth"],
+    responses={
+        307: {"description": "Redirect to frontend with session_id"},
+        502: {"model": ErrorResponse, "description": "Failed to exchange code for tokens"},
+        500: {"model": ErrorResponse, "description": "Unexpected internal error"}
+    }
+)
 async def callback(request: Request):
+    """OAuth2 callback handler for Withings"""
     code = request.query_params.get("code")
     logger.debug(f"withings-callback received auth code {code}")
     async with httpx.AsyncClient() as client:
@@ -93,8 +137,21 @@ async def callback(request: Request):
     return RedirectResponse(f"http://localhost:8501?session_id={session_id}")
 
 
-@app.get("/weight")
+@app.get(
+    "/weight",
+    response_model=List[WeightRecord],
+    summary="Get weight data from Withings",
+    description="Fetches weight data for the user associated with the given session ID.",
+    tags=["Measurements"],
+    responses={
+        200: {"description": "List of weight records"},
+        401: {"model": ErrorResponse, "description": "Invalid or expired session"},
+        502: {"model": ErrorResponse, "description": "Upstream Withings API error"},
+        503: {"model": ErrorResponse, "description": "Network error"}
+    }
+)
 async def get_weight(session_id: str):
+    """Fetch weight measurements using the stored Withings token."""
     logger.debug(f"Fetching weight for session {session_id}")
     access_token = SESSIONS.get(session_id)
     if not access_token:
