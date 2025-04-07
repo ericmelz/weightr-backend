@@ -18,6 +18,8 @@ with open(f"../conf/logging/{app_env}.yaml", "r") as f:
 
 logger = logging.getLogger("app")
 
+logger.info("Starting weightr-backend...")
+
 app = FastAPI()
 
 SESSIONS = {}
