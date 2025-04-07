@@ -1,54 +1,49 @@
-import httpx
-import os
 import uuid
 from urllib.parse import urlencode
 
+import httpx
 from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse, JSONResponse
+from pydantic_settings import BaseSettings
 
 app = FastAPI()
 
 SESSIONS = {}
 
-CLIENT_ID = os.getenv("WITHINGS_CLIENT_ID")
-CLIENT_SECRET = os.getenv("WITHINGS_CLIENT_SECRET")
-REDIRECT_URI = "http://localhost:8000/callback"
-
+REDIRECT_URI = "http://perfin.ai:9876/withings-callback"
 AUTH_URL = "https://account.withings.com/oauth2_user/authorize2"
 TOKEN_URL = "https://wbsapi.withings.net/v2/oauth2"
 
 
-@app.get("/hello")
-def hello():
-    return "hello"
+class Settings(BaseSettings):
+    withings_client_id: str
+    withings_client_secret: str
 
 
-@app.get("/withings-callback")
-def withings_callback():
-    return "withings callback!"
+settings = Settings()
 
 
-@app.get("/login")
-def login():
+@app.get("/withings-login")
+def withings_login():
     params = {
         "response_type": "code",
-        "client_id": CLIENT_ID,
+        "client_id": settings.withings_client_id,
         "redirect_uri": REDIRECT_URI,
-        "scope": "user.metrics",
-        "state": "streamlit",  # simple CSRF prevention
+        "scope": "user.info,user.metrics,user.activity",
+        "state": "weightrCheck",  # simple CSRF prevention
     }
     return RedirectResponse(f"{AUTH_URL}?{urlencode(params)}")
 
 
-@app.get("/callback")
+@app.get("/withings-callback")
 async def callback(request: Request):
     code = request.query_params.get("code")
     async with httpx.AsyncClient() as client:
         resp = await client.post(TOKEN_URL, data={
             "action": "requesttoken",
             "grant_type": "authorization_code",
-            "client_id": CLIENT_ID,
-            "client_secret": CLIENT_SECRET,
+            "client_id": settings.withings_client_id,
+            "client_secret": settings.withings_client_secret,
             "code": code,
             "redirect_uri": REDIRECT_URI,
         })
@@ -60,7 +55,9 @@ async def callback(request: Request):
     SESSIONS[session_id] = access_token
 
     # Redirect back to Streamlit
-    return RedirectResponse(f"http://localhost:8501?session_id={session_id}")
+    #return RedirectResponse(f"http://localhost:8501?session_id={session_id}")
+    # return JSONResponse(content=resp.json())
+    return RedirectResponse(f"/weight?session_id={session_id}")
 
 
 @app.get("/weight")
