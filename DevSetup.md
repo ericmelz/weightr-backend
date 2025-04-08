@@ -3,7 +3,7 @@ Here we assume you have a Mac.
 
 ## 1. 🔧 Install tools
 ```bash
-brew install k3d helm redis
+brew install k3d helm redis mysql
 ```
 Install and run [Docker](https://docs.docker.com/desktop/setup/install/mac-install/).
 
@@ -33,17 +33,18 @@ helm repo update
 helm install redis bitnami/redis --set auth.enabled=false --set architecture=standalone --set master.persistence.enabled=true --create-namespace --namespace redis
 
 # MySQL
+export MYSQL_ROOT_PASSWORD=YOUR_PASSWORD_GOES_HERE
 helm install mysql bitnami/mysql \
-  --set auth.rootPassword=my-root-pw \
+  --set auth.rootPassword=$MYSQL_ROOT_PASSWORD \
   --set auth.database=weightr \
   --set primary.persistence.enabled=true \
   --create-namespace --namespace mysql
 ```
 
-### 5. 🌐 Port-forward (in separate terminal) 
+### 5. 🌐 Port-forward (in separate terminals) 
 ```bash
 kubectl port-forward svc/redis-master 6379:6379 -n redis
-kubectl port-forward svc/mysql 3306:3306 -n mysql
+kubectl port-forward svc/mysql 3307:3306 -n mysql
 ```
 
 ### 6. 🔬 Test Infrastructure
@@ -54,5 +55,7 @@ set foo bar
 get foo
 ^D
 
-
+mysql -P3307 -h127.0.0.1 -uroot -p"$MYSQL_ROOT_PASSWORD"
+show databases;
+^D
 ```
