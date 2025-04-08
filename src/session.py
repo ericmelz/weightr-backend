@@ -1,0 +1,48 @@
+import json
+import httpx
+from typing import Optional
+from redis import Redis
+from models import TokenSession
+
+
+class SessionManager:
+    """Manages weightr client sessions.  For example, maintain withings access tokens for clients."""
+    def __init__(self, redis_client: Redis, token_url: str, client_id: str, client_secret: str):
+        self.redis = redis_client
+        self.token_url = token_url
+        self.client_id = client_id
+        self.client_secret = client_secret
+
+    def set(self, session_id: str, session: TokenSession, ttl: int = 365 * 24 * 60 * 60):
+        self.redis.setex(session_id, ttl, session.json())
+
+    def get(self, session_id: str) -> Optional[TokenSession]:
+        data = await self.redis.get(session_id)
+        if data:
+            return TokenSession.parse_raw(data)
+        return None
+
+    async def refresh(self, session_id: str) -> TokenSession:
+        session = self.get(session_id)
+        if not session:
+            raise Exception("No session found")
+
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                self.token_url,
+                data={
+                    "action": "requesttoken",
+                    "grant_type": "refresh_token",
+                    "client_id": self.client_id,
+                    "client_secret": self.client_secret,
+                    "refresh_token": session.refresh_token,
+                },
+            )
+            response.raise_for_status()
+            data = response.json()["body"]
+            new_session = TokenSession(
+                access_token=data["access_token"],
+                refresh_token=data["refresh_token"]
+            )
+            self.set(session_id, new_session)
+            return new_session
