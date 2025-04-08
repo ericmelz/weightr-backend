@@ -153,6 +153,7 @@ async def callback(request: Request):
 async def get_weight(session_id: str):
     """Fetch weight measurements using the stored Withings token."""
     logger.debug(f"Fetching weight for session {session_id}")
+    # TODO need to persist SESSIONS
     access_token = SESSIONS.get(session_id)
     if not access_token:
         logger.warning(f"Unauthorized access attempt for session {session_id}")
@@ -177,13 +178,16 @@ async def get_weight(session_id: str):
                         logger.exception(f"Unexpected status from withings weight api: {data}")
                         raise HTTPException(status_code=502, detail="Internal server error while fetching weight")
                 weights = [
-                    (group["date"], meas["value"] * 10 ** meas["unit"] * KG_TO_LBS_MULTIPLIER)
+                    WeightRecord(
+                        timestamp=group["date"],
+                        weight_lbs=meas["value"] * 10 ** meas["unit"] * KG_TO_LBS_MULTIPLIER
+                    )
                     for group in data["body"]["measuregrps"]
                     for meas in group["measures"]
                     if meas["type"] == 1
                 ]
                 logger.debug(f"Fetched {len(weights)} weight records.")
-                return JSONResponse(content=weights)
+                return weights
             else:
                 logger.error(f'Unexpected status code from withings: {resp.status_code}')
                 raise HTTPException(
