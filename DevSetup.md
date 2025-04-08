@@ -5,6 +5,7 @@ Here we assume you have a Mac.
 ```bash
 brew install k3d helm
 ```
+Install and run [Docker](https://docs.docker.com/desktop/setup/install/mac-install/).
 
 ### 2. Create k3d cluster
 ```bash
