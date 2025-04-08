@@ -13,13 +13,13 @@ class SessionManager:
         self.client_id = client_id
         self.client_secret = client_secret
 
-    def set(self, session_id: str, session: TokenSession, ttl: int = 365 * 24 * 60 * 60):
-        self.redis.setex(session_id, ttl, session.json())
+    async def set(self, session_id: str, session: TokenSession, ttl: int = 365 * 24 * 60 * 60):
+        await self.redis.setex(session_id, ttl, session.model_dump_json())
 
-    def get(self, session_id: str) -> Optional[TokenSession]:
+    async def get(self, session_id: str) -> Optional[TokenSession]:
         data = await self.redis.get(session_id)
         if data:
-            return TokenSession.parse_raw(data)
+            return TokenSession.model_validate_json(data)
         return None
 
     async def refresh(self, session_id: str) -> TokenSession:
