@@ -1,5 +1,4 @@
-from pydantic import BaseModel
-from typing import List, Tuple
+from typing import List
 import logging.config
 import os
 import uuid
@@ -10,17 +9,9 @@ import yaml
 from fastapi import FastAPI, Request
 from fastapi import HTTPException
 from fastapi.responses import RedirectResponse, JSONResponse
-from pydantic_settings import BaseSettings
 
-
-class WeightRecord(BaseModel):
-    timestamp: int
-    weight_lbs: float
-
-
-class ErrorResponse(BaseModel):
-    error: str
-
+from conf import Settings
+from models import WeightRecord, ErrorResponse
 
 app_env = os.getenv("APP_ENV", "dev")
 with open(f"../conf/logging/{app_env}.yaml", "r") as f:
@@ -53,12 +44,6 @@ AUTH_URL = "https://account.withings.com/oauth2_user/authorize2"
 TOKEN_URL = "https://wbsapi.withings.net/v2/oauth2"
 
 KG_TO_LBS_MULTIPLIER = 2.20462
-
-
-class Settings(BaseSettings):
-    withings_client_id: str
-    withings_client_secret: str
-
 
 settings = Settings()
 
