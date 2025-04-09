@@ -1,17 +1,19 @@
-from typing import List
 import logging.config
 import os
 import uuid
+from typing import List
 from urllib.parse import urlencode
 
 import httpx
 import yaml
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends
 from fastapi import HTTPException
 from fastapi.responses import RedirectResponse, JSONResponse
+from redis import Redis
 
 from conf import Settings
-from models import WeightRecord, ErrorResponse
+from models import WeightRecord, ErrorResponse, TokenSession
+from session import SessionManager
 
 app_env = os.getenv("APP_ENV", "dev")
 with open(f"../conf/logging/{app_env}.yaml", "r") as f:
@@ -46,6 +48,14 @@ TOKEN_URL = "https://wbsapi.withings.net/v2/oauth2"
 KG_TO_LBS_MULTIPLIER = 2.20462
 
 settings = Settings()
+
+
+async def get_redis_client() -> Redis:
+    return Redis(host=settings.redis_host, port=settings.redis_port, decode_responses=True)
+
+
+def get_session_manager(redis: Redis = Depends(get_redis_client)) -> SessionManager:
+    return SessionManager(redis, TOKEN_URL, settings.withings_client_id, settings.withings_client_secret)
 
 
 @app.get(
@@ -83,7 +93,7 @@ def withings_login():
         500: {"model": ErrorResponse, "description": "Unexpected internal error"}
     }
 )
-async def callback(request: Request):
+async def callback(request: Request, session_manager: SessionManager = Depends(get_session_manager)):
     """OAuth2 callback handler for Withings"""
     code = request.query_params.get("code")
     logger.debug(f"withings-callback received auth code {code}")
@@ -112,9 +122,9 @@ async def callback(request: Request):
             logger.exception(e)
             raise HTTPException(status_code=500, detail="Unexpected error.")
 
-    # Generate a simple session token
+    session = TokenSession(access_token=access_token, refresh_token=refresh_token)
     session_id = str(uuid.uuid4())
-    SESSIONS[session_id] = access_token
+    session_manager.set(session_id, session)
     logger.debug(f"Session created: {session_id}")
 
     # Redirect back to Streamlit
@@ -135,50 +145,55 @@ async def callback(request: Request):
         503: {"model": ErrorResponse, "description": "Network error"}
     }
 )
-async def get_weight(session_id: str):
+async def get_weight(session_id: str, session_manager: SessionManager = Depends((get_session_manager))):
     """Fetch weight measurements using the stored Withings token."""
     logger.debug(f"Fetching weight for session {session_id}")
-    # TODO need to persist SESSIONS
-    access_token = SESSIONS.get(session_id)
-    if not access_token:
+    session = session_manager.get(session_id)
+
+    if not session:
         logger.warning(f"Unauthorized access attempt for session {session_id}")
         return JSONResponse({"error": "unauthorized"}, status_code=401)
 
     async with httpx.AsyncClient() as client:
         try:
-            resp = await client.post("https://wbsapi.withings.net/measure", data={
-                "action": "getmeas",
-                "meastype": 1,
-                "category": 1,
-                "access_token": access_token,
-            })
-            if resp.status_code == 200:
-                # TODO invoke refresh flow if token is expired.
-                data = resp.json()
-                if data.get("status") != 0:
-                    logger.error(f"Withings measurement api returned error status: {data.get('status')}")
-                    if data.get("status") == 401:
-                        raise HTTPException(status_code=401, detail="Invalid or expired token")
+            for attempt in ("original", "refreshed"):
+                access_token = session.access_token
+                resp = await client.post("https://wbsapi.withings.net/measure", data={
+                    "action": "getmeas",
+                    "meastype": 1,
+                    "category": 1,
+                    "access_token": access_token,
+                })
+                if resp.status_code == 200:
+                    data = resp.json()
+                    if data.get("status") == 0:
+                        break
+                    elif data.get("status") == 401 and attempt == "original":
+                        logger.warning(f"Session {session_id} received 401 with access token={session.access_token}, "
+                                       f"indicating access token expired.  Refreshing access token...")
+                        session = await session_manager.refresh(session_id)
+                        logger.warning(f"Session {session_id} refreshed.  New access token={session.access_token}")
                     else:
+                        logger.error(f"Withings measurement api returned error status: {data.get('status')}")
                         logger.exception(f"Unexpected status from withings weight api: {data}")
                         raise HTTPException(status_code=502, detail="Internal server error while fetching weight")
-                weights = [
-                    WeightRecord(
-                        timestamp=group["date"],
-                        weight_lbs=meas["value"] * 10 ** meas["unit"] * KG_TO_LBS_MULTIPLIER
+                else:
+                    logger.error(f'Unexpected status code from withings: {resp.status_code}')
+                    raise HTTPException(
+                        status_code=502,
+                        detail=f"Failed to fetch Withings data.  Status: {resp.status_code}"
                     )
-                    for group in data["body"]["measuregrps"]
-                    for meas in group["measures"]
-                    if meas["type"] == 1
-                ]
-                logger.debug(f"Fetched {len(weights)} weight records.")
-                return weights
-            else:
-                logger.error(f'Unexpected status code from withings: {resp.status_code}')
-                raise HTTPException(
-                    status_code=502,
-                    detail=f"Failed to fetch Withings data.  Status: {resp.status_code}"
+            weights = [
+                WeightRecord(
+                    timestamp=group["date"],
+                    weight_lbs=meas["value"] * 10 ** meas["unit"] * KG_TO_LBS_MULTIPLIER
                 )
+                for group in data["body"]["measuregrps"]
+                for meas in group["measures"]
+                if meas["type"] == 1
+            ]
+            logger.debug(f"Fetched {len(weights)} weight records.")
+            return weights
         except httpx.RequestError as e:
             logger.exception(f"Network error while contacting withings weight api")
             logger.exception(e)
