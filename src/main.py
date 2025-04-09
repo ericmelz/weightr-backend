@@ -15,8 +15,8 @@ from conf import Settings
 from models import WeightRecord, ErrorResponse, TokenSession
 from session import SessionManager
 
-app_env = os.getenv("APP_ENV", "dev")
-with open(f"../conf/logging/{app_env}.yaml", "r") as f:
+settings = Settings()
+with open(f"../conf/logging/{settings.app_env}.yaml", "r") as f:
     config = yaml.safe_load(f)
     logging.config.dictConfig(config)
 
@@ -46,8 +46,6 @@ AUTH_URL = "https://account.withings.com/oauth2_user/authorize2"
 TOKEN_URL = "https://wbsapi.withings.net/v2/oauth2"
 
 KG_TO_LBS_MULTIPLIER = 2.20462
-
-settings = Settings()
 
 
 async def get_redis_client() -> Redis:
