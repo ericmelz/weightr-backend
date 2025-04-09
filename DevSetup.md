@@ -59,3 +59,28 @@ mysql -P3307 -h127.0.0.1 -uroot -p"$MYSQL_ROOT_PASSWORD"
 show databases;
 ^D
 ```
+
+### 7. 📦 (optional) Deploy Loki and Grafana
+helm repo add grafana https://grafana.github.io/helm-charts
+helm repo update
+
+helm upgrade --install loki grafana/loki-stack \
+  --namespace logging --create-namespace \
+  --set grafana.enabled=false \
+  --set prometheus.enabled=false
+
+helm upgrade --install grafana grafana/grafana \
+  --namespace logging \
+  --set adminPassword='admin' \
+  --set service.type=NodePort
+
+export GRAFANA_ADMIN_PASSWORD=$(kubectl get secret --namespace logging grafana -o jsonpath="{.data.admin-password}" | base64 --decode) 
+echo $GRAFANA_ADMIN_PASSWORD
+
+### 8. 🌐 (optional) Port forward Grafana In separate terminal
+```bash
+kubectl port-forward svc/grafana -n logging 3000:80
+
+```
+* Visit http://localhost:3000
+* Login is admin/admin
