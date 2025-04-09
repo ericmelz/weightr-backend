@@ -1,7 +1,8 @@
-import json
-import httpx
 from typing import Optional
+
+import httpx
 from redis import Redis
+
 from models import TokenSession
 
 
