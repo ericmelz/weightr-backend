@@ -1,5 +1,6 @@
 import logging.config
 import uuid
+from pathlib import Path
 from typing import List
 from urllib.parse import urlencode
 
@@ -7,7 +8,7 @@ import httpx
 import yaml
 from fastapi import FastAPI, Request, Depends
 from fastapi import HTTPException
-from fastapi.responses import RedirectResponse, JSONResponse
+from fastapi.responses import RedirectResponse
 from redis import Redis
 
 from conf import Settings
@@ -17,7 +18,8 @@ from session import SessionManager
 CSRF_STATE = "weightrCheck"
 
 settings = Settings()
-with open(f"../conf/logging/{settings.app_env}.yaml", "r") as f:
+config_path = Path(__file__).resolve().parent.parent / "conf" / "logging" / f"{settings.app_env}.yaml"
+with open(config_path, "r") as f:
     config = yaml.safe_load(f)
     logging.config.dictConfig(config)
 
