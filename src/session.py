@@ -26,7 +26,7 @@ class SessionManager:
     async def refresh(self, session_id: str) -> TokenSession:
         session = self.get(session_id)
         if not session:
-            raise Exception("No session found")
+            raise Exception(f"No session found for session id {session_id}")
 
         async with httpx.AsyncClient() as client:
             response = await client.post(
