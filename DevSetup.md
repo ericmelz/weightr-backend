@@ -84,3 +84,25 @@ kubectl port-forward svc/grafana -n logging 3000:80
 ```
 * Visit http://localhost:3000
 * Login is admin/admin
+
+### 9. 🌐 (optional) Port forward Loki In separate terminal
+```bash
+kubectl port-forward svc/loki -n logging 3100:3100
+```
+
+Visit http://localhost:3100/loki/api/v1/labels
+
+### 10. 📦 (optional) Deploy Promtail
+```
+docker run --rm -v /Users/ericmelz/Data/logs:/logs \
+  -v $(pwd)/conf/promtail.yaml:/etc/promtail/config.yaml \
+  grafana/promtail:2.9.3 \
+  -config.file=/etc/promtail/config.yaml
+```
+
+### 11. 🎨 Connect Grafana to Loki
+1. Add Loki as a data source (http://loki:3100).  
+1. Go to Grafana Explore and query:
+```logql
+{job="weightr-backend"}
+```
