@@ -12,7 +12,7 @@ def session_id():
     return "test-session-id"
 
 
-class FakeResponse:
+class FakeRefreshResponse:
     def raise_for_status(self):
         pass
 
@@ -41,6 +41,6 @@ def monkeypatch_refresh(monkeypatch):
     import httpx
 
     async def fake_post(*args, **kwargs):
-        return FakeResponse()
+        return FakeRefreshResponse()
 
     monkeypatch.setattr(httpx, "AsyncClient", lambda: FakeAsyncClient(fake_post))
