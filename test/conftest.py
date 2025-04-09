@@ -4,7 +4,7 @@ from models import TokenSession
 
 @pytest.fixture
 def sample_token_session():
-    return TokenSession(access_token="access-token", refresh_token="refresh-token")
+    return TokenSession(access_token="access-token", refresh_token="refresh-token", user_id="user-id")
 
 
 @pytest.fixture
