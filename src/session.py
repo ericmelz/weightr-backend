@@ -43,7 +43,8 @@ class SessionManager:
             data = response.json()["body"]
             new_session = TokenSession(
                 access_token=data["access_token"],
-                refresh_token=data["refresh_token"]
+                refresh_token=data["refresh_token"],
+                user_id=session.user_id
             )
             self.set(session_id, new_session)
             return new_session
