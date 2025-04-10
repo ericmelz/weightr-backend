@@ -107,3 +107,15 @@ docker run --rm -v /Users/ericmelz/Data/logs:/logs \
 ```logql
 {job="weightr-backend"}
 ```
+
+### 12. 📦 (optional) Install Prometheus
+```
+brew install prometheus
+
+prometheus --config.file=/usr/local/etc/prometheus.yml
+```
+Browse to http://localhost:9090/targets
+
+Note that there are some issues when running prometheus as a brew
+service.  See [this ChatGPT chat](https://chatgpt.com/share/67f826f5-529c-8001-920d-86330107aeb7) 
+for details.
