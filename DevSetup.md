@@ -117,7 +117,7 @@ kubectl create configmap prometheus-config \
 kubectl apply -f conf/prometheus-deployment.yaml
 ```
 
-### 13. (optional) Port-foward Prometheus
+### 13. 🌐 (optional) Port-foward Prometheus
 In a separate terminal:
 ```bash
 kubectl port-forward svc/prometheus 9090:9090
