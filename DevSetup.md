@@ -61,6 +61,7 @@ show databases;
 ```
 
 ### 7. 📦 (optional) Deploy Loki and Grafana
+```bash
 helm repo add grafana https://grafana.github.io/helm-charts
 helm repo update
 
@@ -76,7 +77,7 @@ helm upgrade --install grafana grafana/grafana \
 
 export GRAFANA_ADMIN_PASSWORD=$(kubectl get secret --namespace logging grafana -o jsonpath="{.data.admin-password}" | base64 --decode) 
 echo $GRAFANA_ADMIN_PASSWORD
-
+```
 ### 8. 🌐 (optional) Port forward Grafana In separate terminal
 ```bash
 kubectl port-forward svc/grafana -n logging 3000:80
