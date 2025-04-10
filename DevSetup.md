@@ -101,7 +101,7 @@ docker run --rm -v /Users/ericmelz/Data/logs:/logs \
   -config.file=/etc/promtail/config.yaml
 ```
 
-### 11. (optional) 🎨 Connect Grafana to Loki
+### 11. 🎨 (optional) Connect Grafana to Loki
 1. Add Loki as a data source (http://loki:3100).  
 1. Go to Grafana Explore and query:
 ```logql
