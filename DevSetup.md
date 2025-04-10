@@ -110,10 +110,19 @@ docker run --rm -v /Users/ericmelz/Data/logs:/logs \
 
 ### 12. 📦 (optional) Install Prometheus
 ```
-brew install prometheus
+kubectl create configmap prometheus-config \
+  --from-file=prometheus.yml=conf/prometheus.yml \
+  -n default
 
-prometheus --config.file=/usr/local/etc/prometheus.yml
+kubectl apply -f conf/prometheus-deployment.yaml
 ```
+
+### 13. (optional) Port-foward Prometheus
+In a separate terminal:
+```bash
+kubectl port-forward svc/prometheus 9090:9090
+```
+
 Browse to http://localhost:9090/targets
 
 Note that there are some issues when running prometheus as a brew
