@@ -13,3 +13,7 @@ scrape_configs:
   - job_name: 'shoehub'
     static_configs:
       - targets: ['192.168.2.205:8080']
+
+  - job_name: 'weightr-backend'
+    static_configs:
+      - targets: ['192.168.2.205:80']

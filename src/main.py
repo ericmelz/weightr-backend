@@ -9,6 +9,7 @@ import yaml
 from fastapi import FastAPI, Request, Depends
 from fastapi import HTTPException
 from fastapi.responses import RedirectResponse
+from prometheus_fastapi_instrumentator import Instrumentator
 from redis import Redis
 
 from conf import Settings
@@ -41,6 +42,8 @@ app = FastAPI(
         "url": "https://opensource.org/licenses/MIT"
     }
 )
+
+Instrumentator().instrument(app).expose(app)
 
 SESSIONS = {}
 
