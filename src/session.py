@@ -1,13 +1,27 @@
+import logging.config
+from pathlib import Path
 from typing import Optional
 
 import httpx
+import yaml
 from redis import Redis
 
+from conf import Settings
 from models import TokenSession
+
+# TODO NOT SURE IF I NEED TO LOAD SETTINGS AND CONFIG LOGGING HERE
+settings = Settings()
+config_path = Path(__file__).resolve().parent.parent / "conf" / "logging" / f"{settings.app_env}.yaml"
+with open(config_path, "r") as f:
+    config = yaml.safe_load(f)
+    logging.config.dictConfig(config)
+
+logger = logging.getLogger("app")
 
 
 class SessionManager:
     """Manages weightr client sessions.  For example, maintain withings access tokens for clients."""
+
     def __init__(self, redis_client: Redis, token_url: str, client_id: str, client_secret: str):
         self.redis = redis_client
         self.token_url = token_url
@@ -41,6 +55,10 @@ class SessionManager:
             )
             response.raise_for_status()
             data = response.json()["body"]
+            logger.debug(f'{session_id=}')
+            logger.debug(f'{session=}')
+            logger.debug(f'{data=}')
+            # TODO access_token can be nonexistent here.  (data={}).  Handle that case.
             new_session = TokenSession(
                 access_token=data["access_token"],
                 refresh_token=data["refresh_token"],
