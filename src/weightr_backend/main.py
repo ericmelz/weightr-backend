@@ -12,8 +12,8 @@ from fastapi.responses import RedirectResponse
 from prometheus_fastapi_instrumentator import Instrumentator
 from redis import Redis
 
-from conf import Settings
-from models import WeightRecord, ErrorResponse, TokenSession
+from weightr_backend.conf import Settings
+from weightr_backend.models import WeightRecord, ErrorResponse, TokenSession
 from session import SessionManager
 
 CSRF_STATE = "weightrCheck"

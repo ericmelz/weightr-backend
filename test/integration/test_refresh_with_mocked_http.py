@@ -1,7 +1,7 @@
 import pytest
 import redis
 
-from session import SessionManager
+from weightr_backend.session import SessionManager
 
 
 @pytest.fixture(scope="module")

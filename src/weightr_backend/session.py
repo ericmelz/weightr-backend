@@ -6,8 +6,8 @@ import httpx
 import yaml
 from redis import Redis
 
-from conf import Settings
-from models import TokenSession
+from weightr_backend.conf import Settings
+from weightr_backend.models import TokenSession
 
 # TODO NOT SURE IF I NEED TO LOAD SETTINGS AND CONFIG LOGGING HERE
 settings = Settings()
