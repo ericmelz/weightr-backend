@@ -23,8 +23,8 @@ docker run \
     --rm \
     --volume .:/app \
     --volume /app/.venv \
-    --env WEIGHTR_BACKEND_CONF_FILE=var/conf/finquery/.env.docker \
-    --publish 8511:8511 \
+    --env WEIGHTR_BACKEND_CONF_FILE=var/conf/weightr-backend/.env.docker \
+    --publish 8088:8088 \
     $INTERACTIVE \
     $(docker build -q .) \
     "$@"

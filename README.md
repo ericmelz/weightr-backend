@@ -92,6 +92,22 @@ uv run -m uvicorn weightr_backend.main:app --reload --host 0.0.0.0 --port 8088
 ```
 Visit <http://localhost:8088/docs>
 
+## Local Docker setup
+### Configure
+Copy the configuration template:
+```bash
+cp var/conf/finquery/.env.dev.docker var/conf/finquery/.env.docker
+```
+Edit `var/conf/finquery/.env-docker` with your values
+
+### Build and run the docker image
+```bash
+./run.sh
+```
+
+### Hit the app
+visit <http://localhost:8088/docs>
+
 
 
 
