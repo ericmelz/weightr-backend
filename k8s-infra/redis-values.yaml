@@ -1,0 +1,10 @@
+architecture: standalone
+
+auth:
+  enabled: false
+
+master:
+  service:
+    type: LoadBalancer
+    ports:
+      redis: 6379
