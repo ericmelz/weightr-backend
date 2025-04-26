@@ -84,5 +84,14 @@ Edit `var/conf/weightr-backend/.env` with your values
 ```bash
 uv run pytest
 ```
-You may see warnings but they're generally harmless.
+You may see warnings, but they're generally harmless.
+
+### Start app
+```
+uv run -m uvicorn weightr_backend.main:app --reload --host 0.0.0.0 --port 8088
+```
+Visit <http://localhost:8088/docs>
+
+
+
 
