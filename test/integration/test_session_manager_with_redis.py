@@ -8,7 +8,8 @@ def redis_client():
     client = redis.Redis(host="localhost", port=6379, decode_responses=True)
     yield client
     keys = client.keys("*")
-    client.delete(*keys)
+    if keys:
+        client.delete(*keys)
 
 
 async def test_redis_roundtrip(redis_client, session_id, sample_token_session):

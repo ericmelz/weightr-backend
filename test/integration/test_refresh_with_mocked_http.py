@@ -9,7 +9,8 @@ def redis_client():
     client = redis.Redis(host="localhost", port=6379, decode_responses=True)
     yield client
     keys = client.keys("*")
-    client.delete(*keys)
+    if keys:
+        client.delete(*keys)
 
 
 @pytest.mark.asyncio
