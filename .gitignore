@@ -4,4 +4,6 @@ __pycache__
 .coverage
 .env
 .env.dev.gpg
+.env.dev.docker.gpg
+.env.dev.docker.decrypted
 .env.docker

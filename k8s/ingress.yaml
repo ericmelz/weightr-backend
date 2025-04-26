@@ -1,0 +1,15 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: weightr-backend
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /weightr-backend
+        pathType: Prefix
+        backend:
+          service:
+            name: weightr-backend
+            port:
+              number: 80

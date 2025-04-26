@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: weightr-backend
+  labels:
+    app: weightr-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: weightr-backend
+  template:
+    metadata:
+      labels:
+        app: weightr-backend
+    spec:
+      dnsPolicy: Default  # attempt to resolve dns resolution errors with e.g., api.smith.langchain.com
+      volumes:
+        - name: encrypted-conf
+          persistentVolumeClaim:
+            claimName: pvc-weightr-backend-conf
+        - name: decrypted-conf
+          emptyDir: {}
+      initContainers:
+        - name: decrypt-env
+          image: safesecurity/gpg:latest
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              gpg --batch --yes \
+                --passphrase="$GPG_PASSPHRASE" \
+                -o /mnt/decrypted/.env \
+                -d /mnt/secrets/.env.${DEPLOYMENT_ENV}.gpg
+          args:
+          env:
+            - name: GPG_PASSPHRASE
+              valueFrom:
+                secretKeyRef:
+                  name: gpg-passphrase
+                  key: GPG_PASSPHRASE
+            - name: DEPLOYMENT_ENV
+              value: dev.docker
+          volumeMounts:
+            - name: encrypted-conf
+              mountPath: /mnt/secrets
+              readOnly: true
+            - name: decrypted-conf
+              mountPath: /mnt/decrypted
+      containers:
+      - name: weightr-backend
+        image: weightr-backend:latest
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: WEIGHTR_BACKEND_CONF_FILE
+            value: /mnt/decrypted/.env
+        volumeMounts:
+          - name: decrypted-conf
+            mountPath: /mnt/decrypted
+            readOnly: true
+        ports:
+        - containerPort: 8088
+          name: web
+        resources:
+          limits:
+            cpu: "0.5"
+            memory: "512Mi"
+          requests:
+            cpu: "0.1"
+            memory: "256Mi"
