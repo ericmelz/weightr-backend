@@ -1,18 +1,7 @@
-import pytest
-import redis
 from weightr_backend.session import SessionManager
 
 
-@pytest.fixture(scope="module")
-def redis_client():
-    client = redis.Redis(host="localhost", port=6379, decode_responses=True)
-    yield client
-    keys = client.keys("*")
-    if keys:
-        client.delete(*keys)
-
-
-async def test_redis_roundtrip(redis_client, session_id, sample_token_session):
+def test_redis_roundtrip(redis_client, session_id, sample_token_session):
     manager = SessionManager(redis_client, "", "", "")
     manager.set(session_id, sample_token_session, ttl=300)
     result = manager.get(session_id)

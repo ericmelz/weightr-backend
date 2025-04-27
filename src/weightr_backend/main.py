@@ -57,7 +57,7 @@ TOKEN_URL = "https://wbsapi.withings.net/v2/oauth2"
 KG_TO_LBS_MULTIPLIER = 2.20462
 
 
-async def get_redis_client() -> Redis:
+def get_redis_client() -> Redis:
     return Redis(host=settings.redis_host, port=settings.redis_port, decode_responses=True)
 
 
