@@ -59,6 +59,9 @@ spec:
           - name: decrypted-conf
             mountPath: /mnt/decrypted
             readOnly: true
+        args:
+          - "--root-path"
+          - "/weightr-backend"
         ports:
         - containerPort: 8088
           name: web

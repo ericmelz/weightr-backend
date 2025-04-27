@@ -161,7 +161,7 @@ kubectl apply -f k8s/
 
 ### Verify deployment
 ```bash
-kubectl get pv,pvc,deployments,pods,ingress
+kubectl get pv,pvc,deployments,pods,middleware,ingress
 ```
 
 ### Access the service
