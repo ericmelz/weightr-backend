@@ -1,0 +1,154 @@
+name: Run Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/weightr-backend
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python 3.12.2
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12.2"
+
+    - name: Install dependencies and test
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+        uv venv
+        uv pip install -e ".[dev]"
+        uv run pytest
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=ref,event=branch
+            type=sha,format=short
+            latest
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: prod
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup SSH Key
+        run: |
+          mkdir -p ~/.ssh
+          echo -e "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H emelz.com >> ~/.ssh/known_hosts
+
+      - name: Prepare K8s manifests for deployment
+        run: |
+          # Create a temp directory for the manifests
+          mkdir -p ./k8s-deploy
+          
+          # Copy the K8s manifests to the temp directory (unmodified originals)
+          cp ./k8s/* ./k8s-deploy/
+          
+          # Get the Git SHA for the image tag
+          GIT_SHA=$(git rev-parse --short HEAD)
+          
+          # Update the deployment.yaml with the specific image tag (modify the copy)
+          sed -i "s|weightr-backend:latest|ghcr.io/${{ github.repository_owner }}/weightr-backend:sha-${GIT_SHA}|g" ./k8s-deploy/deployment.yaml
+          
+          # Update imagePullPolicy since we're now using a registry
+          sed -i "s|imagePullPolicy: Never|imagePullPolicy: Always|g" ./k8s-deploy/deployment.yaml
+          
+          # Update DEPLOYMENT_ENV value since we're deploying to prod
+          sed -i "s|value: dev|value: prod|g" ./k8s-deploy/deployment.yaml
+          
+          # Update pv hostpath for prod env
+          sed -i "s|/mnt/var/conf/weightr-backend|/mnt/nas_server/var/conf/weightr-backend|g" ./k8s-deploy/hostpath-pv.yaml          
+
+          # Print the changes for verification
+          echo "Updated deployment to use image tag: sha-${GIT_SHA}"
+          grep -n "image:" ./k8s-deploy/deployment.yaml
+
+      - name: Copy K8s manifests to server
+        run: |
+          # Create a directory on the server
+          ssh -i ~/.ssh/id_ed25519 deployer@emelz.com "mkdir -p ~/k8s-manifests/weightr-backend"
+          
+          # Copy the manifests to the server
+          scp -i ~/.ssh/id_ed25519 -r ./k8s-deploy/* deployer@emelz.com:~/k8s-manifests/weightr-backend/
+
+      - name: Create GPG_PASSPHRASE secret
+        run: |
+          ssh -i ~/.ssh/id_ed25519 deployer@emelz.com '
+            export KUBECONFIG=/home/deployer/.kube/config &&
+            export GPG_PASSPHRASE="${{ secrets.GPG_PASSPHRASE }}" &&
+            kubectl create secret generic gpg-passphrase --from-literal=GPG_PASSPHRASE=$GPG_PASSPHRASE \
+                    --dry-run=client -o yaml | \
+                    kubectl apply -f -          
+          '
+
+      - name: Deploy to Kubernetes
+        run: |
+          ssh -i ~/.ssh/id_ed25519 deployer@emelz.com '
+            export KUBECONFIG=/home/deployer/.kube/config &&
+            kubectl apply -f ~/k8s-manifests/weightr-backend/ &&
+            kubectl rollout status deployment/weightr-backend --timeout=180s &&
+            if [ $? -eq 0 ]; then
+              echo "Deployment successful!"
+            else
+              echo "Deployment failed!"
+              exit 1
+            fi
+          '            
+
+      - name: Verify Deployment
+        run: |
+          ssh -i ~/.ssh/id_ed25519 deployer@emelz.com '
+            export KUBECONFIG=/home/deployer/.kube/config &&
+            kubectl get pods -l app=weightr-backend &&
+            kubectl get svc weightr-backend &&
+            kubectl get ingress weightr-backend
+          '

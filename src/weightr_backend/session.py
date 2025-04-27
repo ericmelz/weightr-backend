@@ -1,4 +1,5 @@
 import logging.config
+import os
 from pathlib import Path
 from typing import Optional
 
@@ -6,12 +7,13 @@ import httpx
 import yaml
 from redis import Redis
 
-from conf import Settings
-from models import TokenSession
+from weightr_backend.conf import Settings
+from weightr_backend.models import TokenSession
 
 # TODO NOT SURE IF I NEED TO LOAD SETTINGS AND CONFIG LOGGING HERE
-settings = Settings()
-config_path = Path(__file__).resolve().parent.parent / "conf" / "logging" / f"{settings.app_env}.yaml"
+env_file = os.getenv("WEIGHTR_BACKEND_CONF_FILE", "var/conf/weightr-backend/.env")
+settings = Settings(_env_file=env_file, _env_file_encoding="utf-8")
+config_path = Path(__file__).resolve().parent.parent.parent / "conf" / "logging" / f"{settings.app_env}.yaml"
 with open(config_path, "r") as f:
     config = yaml.safe_load(f)
     logging.config.dictConfig(config)

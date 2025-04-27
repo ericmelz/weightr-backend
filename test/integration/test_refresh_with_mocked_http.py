@@ -1,7 +1,7 @@
 import pytest
 import redis
 
-from session import SessionManager
+from weightr_backend.session import SessionManager
 
 
 @pytest.fixture(scope="module")
@@ -9,7 +9,8 @@ def redis_client():
     client = redis.Redis(host="localhost", port=6379, decode_responses=True)
     yield client
     keys = client.keys("*")
-    client.delete(*keys)
+    if keys:
+        client.delete(*keys)
 
 
 @pytest.mark.asyncio
