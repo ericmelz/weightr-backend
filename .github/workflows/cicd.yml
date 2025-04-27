@@ -24,7 +24,7 @@ jobs:
 
     - name: Install dependencies and test
       run: |
-        curl -LsSf https://astral.sh/uv/install.sh | shcd 
+        curl -LsSf https://astral.sh/uv/install.sh | sh
         echo "$HOME/.cargo/bin" >> $GITHUB_PATH
         uv venv
         uv pip install -e ".[dev]"
