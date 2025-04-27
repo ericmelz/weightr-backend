@@ -1,5 +1,5 @@
 import pytest
-from models import TokenSession
+from weightr_backend.models import TokenSession
 
 
 @pytest.fixture

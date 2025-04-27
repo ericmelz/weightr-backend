@@ -1,4 +1,5 @@
 import logging.config
+import os
 import uuid
 from pathlib import Path
 from typing import List
@@ -12,14 +13,16 @@ from fastapi.responses import RedirectResponse
 from prometheus_fastapi_instrumentator import Instrumentator
 from redis import Redis
 
-from conf import Settings
-from models import WeightRecord, ErrorResponse, TokenSession
-from session import SessionManager
+from weightr_backend.conf import Settings
+from weightr_backend.models import WeightRecord, ErrorResponse, TokenSession
+from weightr_backend.session import SessionManager
 
 CSRF_STATE = "weightrCheck"
 
-settings = Settings()
-config_path = Path(__file__).resolve().parent.parent / "conf" / "logging" / f"{settings.app_env}.yaml"
+env_file = os.getenv("WEIGHTR_BACKEND_CONF_FILE", "var/conf/weightr-backend/.env")
+settings = Settings(_env_file=env_file, _env_file_encoding="utf-8")
+
+config_path = Path(__file__).resolve().parent.parent.parent / "conf" / "logging" / f"{settings.app_env}.yaml"
 with open(config_path, "r") as f:
     config = yaml.safe_load(f)
     logging.config.dictConfig(config)
@@ -59,7 +62,8 @@ async def get_redis_client() -> Redis:
 
 
 def get_session_manager(redis: Redis = Depends(get_redis_client)) -> SessionManager:
-    return SessionManager(redis, TOKEN_URL, settings.withings_client_id, settings.withings_client_secret)
+    return SessionManager(redis, TOKEN_URL, settings.withings_client_id,
+                          settings.withings_client_secret.get_secret_value())
 
 
 @app.get(
@@ -112,7 +116,7 @@ async def callback(request: Request, session_manager: SessionManager = Depends(g
                 "action": "requesttoken",
                 "grant_type": "authorization_code",
                 "client_id": settings.withings_client_id,
-                "client_secret": settings.withings_client_secret,
+                "client_secret": settings.withings_client_secret.get_secret_value(),
                 "code": code,
                 "redirect_uri": REDIRECT_URI,
             })

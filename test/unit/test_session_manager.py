@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock
 
-from session import SessionManager
+from weightr_backend.session import SessionManager
 
 
 def test_set_and_get_session(session_id, sample_token_session):
