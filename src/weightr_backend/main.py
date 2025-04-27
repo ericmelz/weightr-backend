@@ -19,7 +19,7 @@ from weightr_backend.session import SessionManager
 
 CSRF_STATE = "weightrCheck"
 
-env_file = os.getenv("WEIGHTR_BACKEND_CONF_FILE", "var/conf/weightr-backend/.env")
+env_file = os.getenv("WEIGHTR_BACKEND_CONF_FILE", "var/conf/weightr-backend/.env.dev")
 settings = Settings(_env_file=env_file, _env_file_encoding="utf-8")
 
 config_path = Path(__file__).resolve().parent.parent.parent / "conf" / "logging" / f"{settings.app_env}.yaml"
