@@ -14,7 +14,11 @@ spec:
       labels:
         app: weightr-backend
     spec:
-      dnsPolicy: Default  # attempt to resolve dns resolution errors with e.g., api.smith.langchain.com
+      dnsPolicy: ClusterFirst
+      dnsConfig:
+        options:
+          - name: ndots
+            value: "1"
       volumes:
         - name: encrypted-conf
           persistentVolumeClaim:
