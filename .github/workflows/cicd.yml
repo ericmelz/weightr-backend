@@ -103,7 +103,7 @@ jobs:
           sed -i "s|imagePullPolicy: Never|imagePullPolicy: Always|g" ./k8s-deploy/deployment.yaml
           
           # Update DEPLOYMENT_ENV value since we're deploying to prod
-          sed -i "s|value: dev|value: prod|g" ./k8s-deploy/deployment.yaml
+          sed -i "s|value: dev.docker|value: prod|g" ./k8s-deploy/deployment.yaml
           
           # Update pv hostpath for prod env
           sed -i "s|/mnt/var/conf/weightr-backend|/mnt/nas_server/var/conf/weightr-backend|g" ./k8s-deploy/hostpath-pv.yaml          
