@@ -46,16 +46,8 @@ Visit <http://localhost:8088/docs>
 
 
 ## Local Docker setup
-### Configure
-Copy the configuration template:
 ```bash
-cp var/conf/weightr-backend/.env.dev.docker.template var/conf/finquery/.env.dev.docker
-```
-Edit `var/conf/weightr-backend/.env.docker` with your values
-
-### Build and run the docker image
-```bash
-./run.sh
+make run-docker
 ```
 
 ### Hit the app
