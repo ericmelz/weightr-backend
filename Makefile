@@ -13,7 +13,7 @@ dev:
 	bash scripts/dev.sh
 
 test:
-	pytest -v
+	bash scripts/configure.sh --non-interactive
 
 unittest:
 	pytest -v -m "unittest"

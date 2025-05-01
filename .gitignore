@@ -7,3 +7,4 @@ __pycache__
 .env.dev.docker.gpg
 .env.dev.docker.decrypted
 .env.docker
+.env.dev.bak

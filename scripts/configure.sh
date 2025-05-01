@@ -8,6 +8,15 @@ ENV_TEMPLATE="$CONF_DIR/.env.dev.template"
 ENV_FINAL="$CONF_DIR/.env.dev"
 VENV_DIR="$PROJECT_ROOT/.venv"
 
+NON_INTERACTIVE=false
+
+# Parse command-line args
+for arg in "$@"; do
+  if [[ "$arg" == "--non-interactive" ]]; then
+    NON_INTERACTIVE=true
+  fi
+done
+
 # Step 1: Install uv if missing
 if ! command -v uv &>/dev/null; then
   echo "uv not found. Installing via pip..."
@@ -30,12 +39,16 @@ echo "Copying environment template..."
 cp "$ENV_TEMPLATE" "$ENV_FINAL"
 
 # Step 5: Prompt user for secrets
-read -p "Enter your WITHINGS_CLIENT_ID: " CLIENT_ID
-read -p "Enter your WITHINGS_CLIENT_SECRET: " CLIENT_SECRET
+if [ "$NON_INTERACTIVE" = false ]; then
+  read -p "Enter your WITHINGS_CLIENT_ID: " CLIENT_ID
+  read -p "Enter your WITHINGS_CLIENT_SECRET: " CLIENT_SECRET
 
-# Step 6: Inject secrets into .env
-sed -i '' "s/^WITHINGS_CLIENT_ID=.*/WITHINGS_CLIENT_ID=$CLIENT_ID/" "$ENV_FINAL"
-sed -i '' "s/^WITHINGS_CLIENT_SECRET=.*/WITHINGS_CLIENT_SECRET=$CLIENT_SECRET/" "$ENV_FINAL"
+  # Step 6: Inject secrets into .env
+  sed -i '' "s/^WITHINGS_CLIENT_ID=.*/WITHINGS_CLIENT_ID=$CLIENT_ID/" "$ENV_FINAL"
+  sed -i '' "s/^WITHINGS_CLIENT_SECRET=.*/WITHINGS_CLIENT_SECRET=$CLIENT_SECRET/" "$ENV_FINAL"
+else
+  echo "Skipp secrets prompts (--non-interactive detected)"
+fi
 
 echo ".env configuration complete."
 
