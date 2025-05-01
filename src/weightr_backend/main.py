@@ -30,6 +30,9 @@ with open(config_path, "r") as f:
 logger = logging.getLogger("app")
 
 logger.info("Starting weightr-backend...")
+logger.debug(f"{env_file=}")
+logger.debug(f"{config_path=}")
+logger.debug(f"{settings.app_env=}")
 
 app = FastAPI(
     title="Weightr Backend",

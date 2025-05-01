@@ -1,0 +1,44 @@
+#!/bin/bash
+
+set -euo pipefail
+
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+CONF_DIR="$PROJECT_ROOT/var/conf/weightr-backend"
+ENV_TEMPLATE="$CONF_DIR/.env.dev.template"
+ENV_FINAL="$CONF_DIR/.env.dev"
+VENV_DIR="$PROJECT_ROOT/.venv"
+
+# Step 1: Install uv if missing
+if ! command -v uv &>/dev/null; then
+  echo "uv not found. Installing via pip..."
+  python3 -m pip install --upgrade pip
+  python3 -m pip install uv
+fi
+
+# Step 2: Create virtual environment
+if [ ! -d "$VENV_DIR" ]; then
+  echo "Creating virtual environment..."
+  python3 -m venv "$VENV_DIR"
+fi
+
+# Step 3: Install dependencies
+echo "Installing dependencies with uv..."
+uv pip install -e ".[dev]"
+
+# Step 4: Copy .env.dev.template to .env
+echo "Copying environment template..."
+cp "$ENV_TEMPLATE" "$ENV_FINAL"
+
+# Step 5: Prompt user for secrets
+read -p "Enter your WITHINGS_CLIENT_ID: " CLIENT_ID
+read -p "Enter your WITHINGS_CLIENT_SECRET: " CLIENT_SECRET
+
+# Step 6: Inject secrets into .env
+sed -i '' "s/^WITHINGS_CLIENT_ID=.*/WITHINGS_CLIENT_ID=$CLIENT_ID/" "$ENV_FINAL"
+sed -i '' "s/^WITHINGS_CLIENT_SECRET=.*/WITHINGS_CLIENT_SECRET=$CLIENT_SECRET/" "$ENV_FINAL"
+
+echo ".env configuration complete."
+
+# Step 7: Verify setup by running tests
+echo "Verifying setup by running tests..."
+uv run pytest
