@@ -2,8 +2,9 @@
 venv
 __pycache__
 .coverage
-.env
+.env.dev
 .env.dev.gpg
 .env.dev.docker.gpg
 .env.dev.docker.decrypted
 .env.docker
+.env.dev.bak
