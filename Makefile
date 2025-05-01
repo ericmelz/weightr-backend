@@ -9,8 +9,11 @@ configure:
 run:
 	bash scripts/run.sh
 
-dev:
-	bash scripts/dev.sh
+k3d:
+	bash scripts/k3d.sh
+
+destroy-k3d:
+	bash scripts/destroy-k3d.sh
 
 test:
 	bash scripts/configure.sh --non-interactive
