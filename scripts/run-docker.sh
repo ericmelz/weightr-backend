@@ -13,6 +13,9 @@
 #   -it $(docker build -q .)    Build the image, then use it as a run target
 #   $@                          Pass any arguments to the container
 
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+CONF_FILE="/app/var/conf/weightr-backend/.env.dev.docker"
+
 if [ -t 1 ]; then
     INTERACTIVE="-it"
 else
@@ -21,10 +24,10 @@ fi
 
 docker run \
     --rm \
-    --volume .:/app \
+    --volume $PROJECT_ROOT:/app \
     --volume /app/.venv \
-    --env WEIGHTR_BACKEND_CONF_FILE=var/conf/weightr-backend/.env.docker \
+    --env WEIGHTR_BACKEND_CONF_FILE=$CONF_FILE \
     --publish 8088:8088 \
     $INTERACTIVE \
-    $(docker build -q .) \
+    $(docker build -q $PROJECT_ROOT) \
     "$@"
