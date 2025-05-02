@@ -1,17 +1,15 @@
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: hostpath-weightr-backend-conf-pv
+  name: weightr-backend-pv
   labels:
     app: weightr-backend
     datatype: conf
 spec:
   capacity:
-    storage: 5Gi
+    storage: 1Gi
   accessModes:
     - ReadWriteMany
-  persistentVolumeReclaimPolicy: Retain
   storageClassName: manual-hostpath
   hostPath:
-    path: /mnt/var/conf/weightr-backend
-    type: DirectoryOrCreate
+    path: {{ .Values.storage.hostPath }}

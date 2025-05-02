@@ -74,71 +74,34 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup SSH Key
-        run: |
-          mkdir -p ~/.ssh
-          echo -e "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H emelz.com >> ~/.ssh/known_hosts
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: 'latest'
 
-      - name: Prepare K8s manifests for deployment
+      - name: Configure kubectl
         run: |
-          # Create a temp directory for the manifests
-          mkdir -p ./k8s-deploy
-          
-          # Copy the K8s manifests to the temp directory (unmodified originals)
-          cp ./k8s/* ./k8s-deploy/
-          
-          # Get the Git SHA for the image tag
-          GIT_SHA=$(git rev-parse --short HEAD)
-          
-          # Update the deployment.yaml with the specific image tag (modify the copy)
-          sed -i "s|weightr-backend:latest|ghcr.io/${{ github.repository_owner }}/weightr-backend:sha-${GIT_SHA}|g" ./k8s-deploy/deployment.yaml
-          
-          # Update imagePullPolicy since we're now using a registry
-          sed -i "s|imagePullPolicy: Never|imagePullPolicy: Always|g" ./k8s-deploy/deployment.yaml
-          
-          # Update DEPLOYMENT_ENV value since we're deploying to prod
-          sed -i "s|value: dev.docker|value: prod|g" ./k8s-deploy/deployment.yaml
-          
-          # Update pv hostpath for prod env
-          sed -i "s|/mnt/var/conf/weightr-backend|/mnt/nas_server/var/conf/weightr-backend|g" ./k8s-deploy/hostpath-pv.yaml          
-
-          # Print the changes for verification
-          echo "Updated deployment to use image tag: sha-${GIT_SHA}"
-          grep -n "image:" ./k8s-deploy/deployment.yaml
-
-      - name: Copy K8s manifests to server
-        run: |
-          # Create a directory on the server
-          ssh -i ~/.ssh/id_ed25519 deployer@emelz.com "mkdir -p ~/k8s-manifests/weightr-backend"
-          
-          # Copy the manifests to the server
-          scp -i ~/.ssh/id_ed25519 -r ./k8s-deploy/* deployer@emelz.com:~/k8s-manifests/weightr-backend/
+          echo "${{ secrets.KUBE_CONFIG }}" > kubeconfig.yaml
+          export KUBECONFIG=./kubeconfig.yaml
 
       - name: Create GPG_PASSPHRASE secret
         run: |
-          ssh -i ~/.ssh/id_ed25519 deployer@emelz.com '
-            export KUBECONFIG=/home/deployer/.kube/config &&
-            export GPG_PASSPHRASE="${{ secrets.GPG_PASSPHRASE }}" &&
-            kubectl create secret generic gpg-passphrase --from-literal=GPG_PASSPHRASE=$GPG_PASSPHRASE \
-                    --dry-run=client -o yaml | \
-                    kubectl apply -f -          
-          '
+          kubectl create secret generic gpg-passphrase \
+            --from-literal=GPG_PASSPHRASE=${{ secrets.GPG_PASSPHRASE }} \
+            --dry-run=client -o yaml | \
+            kubectl apply -f -
 
-      - name: Deploy to Kubernetes
+      - name: Deploy with Helm
         run: |
-          ssh -i ~/.ssh/id_ed25519 deployer@emelz.com '
-            export KUBECONFIG=/home/deployer/.kube/config &&
-            kubectl apply -f ~/k8s-manifests/weightr-backend/ &&
-            kubectl rollout status deployment/weightr-backend --timeout=180s &&
-            if [ $? -eq 0 ]; then
-              echo "Deployment successful!"
-            else
-              echo "Deployment failed!"
-              exit 1
-            fi
-          '            
+          # Get the Git SHA for the image tag
+          GIT_SHA=$(git rev-parse --short HEAD)
+          
+          # Deploy using Helm
+          helm upgrade --install weightr-backend ./helm \
+            --values ./helm/values.yaml \
+            --values ./helm/values/values-prod.yaml \
+            --set image.tag=sha-${GIT_SHA} \
+            --wait --timeout 180s
 
       - name: Verify Deployment
         run: |

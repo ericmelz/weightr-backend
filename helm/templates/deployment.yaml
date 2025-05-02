@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: weightr-backend
+  labels:
+    app: weightr-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: weightr-backend
+  template:
+    metadata:
+      labels:
+        app: weightr-backend
+    spec:
+      dnsPolicy: ClusterFirst
+      dnsConfig:
+        options:
+          - name: ndots
+            value: "1"
+      volumes:
+        - name: encrypted-conf
+          persistentVolumeClaim:
+            claimName: pvc-weightr-backend-conf
+        - name: decrypted-conf
+          emptyDir: {}
+      initContainers:
+        - name: decrypt-env
+          image: safesecurity/gpg:latest
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              gpg --batch --yes \
+                --passphrase="$GPG_PASSPHRASE" \
+                -o /mnt/decrypted/.env \
+                -d /mnt/secrets/.env.${DEPLOYMENT_ENV}.gpg
+          env:
+            - name: GPG_PASSPHRASE
+              valueFrom:
+                secretKeyRef:
+                  key: GPG_PASSPHRASE
+                  name: gpg-passphrase
+            - name: DEPLOYMENT_ENV
+              value: {{ .Values.deploymentEnv }}
+          volumeMounts:
+            - mountPath: /mnt/secrets
+              name: encrypted-conf
+              readOnly: true
+            - mountPath: /mnt/decrypted
+              name: decrypted-conf
+      containers:
+        - name: weightr-backend
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: WEIGHTR_BACKEND_CONF_FILE
+              value: /mnt/decrypted/.env
+          volumeMounts:
+            - mountPath: /mnt/decrypted
+              name: decrypted-conf
+              readOnly: true
+          args:
+            - "--root-path"
+            - "/weightr-backend"
+          ports:
+          - containerPort: 8088
+            name: web
+          resources:
+            limits:
+              cpu: {{ .Values.resources.limits.cpu | default "0.5" | quote }}
+              memory: {{ .Values.resources.limits.memory | default "512Mi" | quote }}
+            requests:
+              cpu: {{ .Values.resources.requests.cpu | default "0.1" | quote }}
+              memory: {{ .Values.resources.requests.memory | default "256Mi" | quote }}
