@@ -1,0 +1,5 @@
+image:
+  pullPolicy: Never
+deploymentEnv: dev.docker
+storage:
+  hostPath: /mnt/var/conf/weightr-backend

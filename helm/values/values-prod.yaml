@@ -1,0 +1,8 @@
+image:
+  repository: ghcr.io/ericmelz/weightr-backend
+  pullPolicy: Always
+
+deploymentEnv: prod
+
+storage:
+  hostPath: /mnt/nas_server/var/conf/weightr-backend

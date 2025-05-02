@@ -31,8 +31,8 @@ else
 
   # Note: you can decrypt using
   # gpg --batch --yes --passphrase $GPG_PASSPHRASE \
-  #     -o var/conf/weightr-backend/.env.dev.template.docker.decrypted \
-  #     -d var/conf/weightr-backend/.env.dev.template.docker.gpg
+  #     -o var/conf/weightr-backend/.env.dev.docker.decrypted \
+  #     -d var/conf/weightr-backend/.env.dev.docker.gpg
 
   echo "Installing the encryption key..."
   kubectl create secret generic gpg-passphrase \
@@ -46,7 +46,7 @@ echo "Importing docker image..."
 k3d image import weightr-backend:latest -c $CLUSTER_NAME
 
 echo "Deploying resources to k3d..."
-kubectl apply -f $PROJECT_ROOT/k8s
+helm upgrade --install weightr-backend ./helm
 
 echo "Restarting deployment..."
 kubectl rollout restart deployment weightr-backend
