@@ -84,6 +84,10 @@ jobs:
           echo "${{ secrets.KUBE_CONFIG }}" > kubeconfig.yaml
           export KUBECONFIG=./kubeconfig.yaml
 
+      - name: Test connectivity
+        run: |
+          kubectl get pod
+
       - name: Create GPG_PASSPHRASE secret
         run: |
           kubectl create secret generic gpg-passphrase \
