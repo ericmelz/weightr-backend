@@ -69,6 +69,8 @@ jobs:
     runs-on: ubuntu-latest
     environment: prod
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    env:
+      KUBECONFIG: ./kubeconfig.yaml
 
     steps:
       - name: Checkout Repository
@@ -82,7 +84,6 @@ jobs:
       - name: Configure kubectl
         run: |
           echo "${{ secrets.KUBE_CONFIG }}" > kubeconfig.yaml
-          export KUBECONFIG=./kubeconfig.yaml
 
       - name: Test connectivity
         run: |
