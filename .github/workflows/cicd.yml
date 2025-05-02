@@ -110,9 +110,6 @@ jobs:
 
       - name: Verify Deployment
         run: |
-          ssh -i ~/.ssh/id_ed25519 deployer@emelz.com '
-            export KUBECONFIG=/home/deployer/.kube/config &&
-            kubectl get pods -l app=weightr-backend &&
-            kubectl get svc weightr-backend &&
-            kubectl get ingress weightr-backend
-          '
+          kubectl get pods -l app=weightr-backend &&
+          kubectl get svc weightr-backend &&
+          kubectl get ingress weightr-backend
