@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-CLUSTER_NAME="dev2"
+CLUSTER_NAME="dev"
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VAR_DIR="$PROJECT_ROOT/var"
@@ -17,27 +17,39 @@ else
 
   # This is a bug that I don't have a better solution for fixing...
   echo "Fixing ~/.kube/config"
-  sed -i '' 's|server: https://host.docker.internal|server: https://0.0.0.0|g' ~/.kube/config
+  sed -i '' 's|server: https://host.docker.internal|server: https://127.0.0.1|g' ~/.kube/config
 
-  echo "Encrypting configuration..."
-  export GPG_PASSPHRASE=$(openssl rand -base64 32)
-  echo "Your GPG_PASSPHRASE is $GPG_PASSPHRASE"
-
-  rm -f $VAR_DIR/conf/weightr-backend/.env.dev.docker.gpg
-  cat "$VAR_DIR/conf/weightr-backend/.env.dev.docker"| \
-       gpg --symmetric --cipher-alg AES256 \
-           --batch --passphrase "$GPG_PASSPHRASE" \
-           -o "$VAR_DIR/conf/weightr-backend/.env.dev.docker.gpg"
-
-  # Note: you can decrypt using
-  # gpg --batch --yes --passphrase $GPG_PASSPHRASE \
-  #     -o var/conf/weightr-backend/.env.dev.docker.decrypted \
-  #     -d var/conf/weightr-backend/.env.dev.docker.gpg
+  if [ -z "${GPG_PASSPHRASE}" ]; then
+    export GPG_PASSPHRASE=$(openssl rand -base64 32)
+    echo "Generated new GPG_PASSPHRASE: $GPG_PASSPHRASE"
+    echo "Add it to your ~/.zshrc using"
+    echo "echo 'export GPG_PASSPHRASE=$GPG_PASSPHRASE' >> ~/.zshrc"
+  else
+    echo "Using existing GPG_PASSPHRASE"
+  fi
 
   echo "Installing the encryption key..."
   kubectl create secret generic gpg-passphrase \
           --from-literal=GPG_PASSPHRASE=$GPG_PASSPHRASE
 fi
+
+if [ -z "${GPG_PASSPHRASE}" ]; then
+  echo "*** ERROR: GPG_PASSPHRASE is not set!!! Set this before running the script!"
+  exit 1
+fi
+
+echo "Encrypting configuration..."
+rm -f $VAR_DIR/conf/weightr-backend/.env.dev.docker.gpg
+cat "$VAR_DIR/conf/weightr-backend/.env.dev.docker"| \
+     gpg --symmetric --cipher-alg AES256 \
+         --batch --passphrase "$GPG_PASSPHRASE" \
+         -o "$VAR_DIR/conf/weightr-backend/.env.dev.docker.gpg"
+
+# Note: you can decrypt using
+# gpg --batch --yes --passphrase $GPG_PASSPHRASE \
+#     -o var/conf/weightr-backend/.env.dev.docker.decrypted \
+#     -d var/conf/weightr-backend/.env.dev.docker.gpg
+
 
 echo "Building docker image..."
 docker build -t weightr-backend:latest .
