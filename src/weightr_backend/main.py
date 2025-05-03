@@ -53,7 +53,11 @@ Instrumentator().instrument(app).expose(app)
 
 SESSIONS = {}
 
-REDIRECT_URI = "http://perfin.ai:9876/withings-callback"
+DEV_ENV_TO_REDIRECT_URI = {
+    "dev": "http://perfin.ai:9876/local-withings-callback",
+    "dev.docker": "http://perfin.ai:9876/k3d-withings-callback",
+}
+REDIRECT_URI = DEV_ENV_TO_REDIRECT_URI.get(settings.app_env, "http://perfin.ai:9876/local-withings-callback")
 AUTH_URL = "https://account.withings.com/oauth2_user/authorize2"
 TOKEN_URL = "https://wbsapi.withings.net/v2/oauth2"
 
