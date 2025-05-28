@@ -19,7 +19,8 @@ from weightr_backend.session import SessionManager
 
 CSRF_STATE = "weightrCheck"
 
-env_file = os.getenv("WEIGHTR_BACKEND_CONF_FILE", "var/conf/weightr-backend/.env.dev")
+conf_dir = f"{os.getenv('HOME')}/Data/var/conf"
+env_file = os.getenv("WEIGHTR_BACKEND_CONF_FILE", f"{conf_dir}/weightr-backend/.env.dev")
 settings = Settings(_env_file=env_file, _env_file_encoding="utf-8")
 
 config_path = Path(__file__).resolve().parent.parent.parent / "conf" / "logging" / f"{settings.app_env}.yaml"
@@ -141,7 +142,7 @@ async def callback(request: Request, session_manager: SessionManager = Depends(g
 
             # Redirect back to Streamlit
             # TODO: this url should be configurable based on app_env
-            return RedirectResponse(f"http://localhost:8501?session_id={session_id}")
+            return RedirectResponse(f"{settings.frontend_url}?session_id={session_id}")
         except httpx.HTTPStatusError as e:
             logger.error(f"Failed to exchange code: {e.response.status_code} - {e.response.text}")
             raise HTTPException(status_code=502, detail="Failed to exchange authorization code for access tokens")

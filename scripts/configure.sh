@@ -3,11 +3,12 @@
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-CONF_DIR="$PROJECT_ROOT/var/conf/weightr-backend"
-ENV_TEMPLATE="$CONF_DIR/.env.dev.template"
-ENV_FINAL="$CONF_DIR/.env.dev"
-ENV_DOCKER_TEMPLATE="$CONF_DIR/.env.dev.docker.template"
-ENV_DOCKER_FINAL="$CONF_DIR/.env.dev.docker"
+CONF_SRC_DIR="$PROJECT_ROOT/var/conf/weightr-backend"
+CONF_DEST_DIR="$HOME/Data/var/conf/weightr-backend"
+ENV_TEMPLATE="$CONF_SRC_DIR/.env.dev.template"
+ENV_FINAL="$CONF_DEST_DIR/.env.dev"
+ENV_DOCKER_TEMPLATE="$CONF_SRC_DIR/.env.dev.docker.template"
+ENV_DOCKER_FINAL="$CONF_DEST_DIR/.env.dev.docker"
 VENV_DIR="$PROJECT_ROOT/.venv"
 
 NON_INTERACTIVE=false
@@ -18,6 +19,9 @@ for arg in "$@"; do
     NON_INTERACTIVE=true
   fi
 done
+
+# Ensure CONF_DEST_DIR exists
+mkdir -p "$CONF_DEST_DIR"
 
 # Step 1: Install uv if missing
 if ! command -v uv &>/dev/null; then

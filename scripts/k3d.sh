@@ -4,10 +4,9 @@ set -euo pipefail
 
 CLUSTER_NAME="dev"
 
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-VAR_DIR="$PROJECT_ROOT/var"
+VAR_DIR="$HOME/Data/var"
 
-if k3d cluster list | grep -q "^$CLUSTER_NAME"; then
+if k3d cluster list | grep -q "$CLUSTER_NAME"; then
   echo "Cluster '$CLUSTER_NAME' already exists.  Skipping creation"
 else
   echo "Creating cluster '$CLUSTER_NAME' using project-specific config..."

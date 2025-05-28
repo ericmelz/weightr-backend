@@ -8,3 +8,4 @@ class Settings(BaseSettings):
     withings_client_secret: SecretStr
     redis_host: str
     redis_port: int
+    frontend_url: str
