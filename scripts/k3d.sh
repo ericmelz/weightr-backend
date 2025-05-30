@@ -5,8 +5,13 @@ set -euo pipefail
 CLUSTER_NAME="dev"
 
 VAR_DIR="$HOME/Data/var"
+#set -x
+echo "CLUSTER_NAME=$CLUSTER_NAME"
 
-if k3d cluster list | grep -q "$CLUSTER_NAME"; then
+CLUSTER_LIST=$(k3d cluster list)
+echo "CLUSTER_LIST=$CLUSTER_LIST"
+
+if echo $CLUSTER_LIST | grep -q "$CLUSTER_NAME"; then
   echo "Cluster '$CLUSTER_NAME' already exists.  Skipping creation"
 else
   echo "Creating cluster '$CLUSTER_NAME' using project-specific config..."

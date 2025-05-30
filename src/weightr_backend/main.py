@@ -23,7 +23,7 @@ conf_dir = f"{os.getenv('HOME')}/Data/var/conf"
 env_file = os.getenv("WEIGHTR_BACKEND_CONF_FILE", f"{conf_dir}/weightr-backend/.env.dev")
 settings = Settings(_env_file=env_file, _env_file_encoding="utf-8")
 
-config_path = Path(__file__).resolve().parent.parent.parent / "conf" / "logging" / f"{settings.app_env}.yaml"
+config_path = Path(__file__).resolve().parent.parent.parent / "conf" / "logging" / f"{settings.logging_conf_file}"
 with open(config_path, "r") as f:
     config = yaml.safe_load(f)
     logging.config.dictConfig(config)
@@ -33,7 +33,6 @@ logger = logging.getLogger("app")
 logger.info("Starting weightr-backend...")
 logger.debug(f"{env_file=}")
 logger.debug(f"{config_path=}")
-logger.debug(f"{settings.app_env=}")
 
 app = FastAPI(
     title="Weightr Backend",
@@ -54,11 +53,6 @@ Instrumentator().instrument(app).expose(app)
 
 SESSIONS = {}
 
-DEV_ENV_TO_REDIRECT_URI = {
-    "dev": "http://perfin.ai:9876/local-withings-callback",
-    "dev.docker": "http://perfin.ai:9876/k3d-withings-callback",
-}
-REDIRECT_URI = DEV_ENV_TO_REDIRECT_URI.get(settings.app_env, "http://perfin.ai:9876/local-withings-callback")
 AUTH_URL = "https://account.withings.com/oauth2_user/authorize2"
 TOKEN_URL = "https://wbsapi.withings.net/v2/oauth2"
 
@@ -89,7 +83,7 @@ def withings_login():
     params = {
         "response_type": "code",
         "client_id": settings.withings_client_id,
-        "redirect_uri": REDIRECT_URI,
+        "redirect_uri": settings.redirect_uri,
         "scope": "user.metrics",
         "state": CSRF_STATE,  # simple CSRF prevention
     }
@@ -126,7 +120,7 @@ async def callback(request: Request, session_manager: SessionManager = Depends(g
                 "client_id": settings.withings_client_id,
                 "client_secret": settings.withings_client_secret.get_secret_value(),
                 "code": code,
-                "redirect_uri": REDIRECT_URI,
+                "redirect_uri": settings.redirect_uri,
             })
             resp.raise_for_status()
             token_data = resp.json()["body"]

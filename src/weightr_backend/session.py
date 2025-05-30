@@ -14,7 +14,7 @@ from weightr_backend.models import TokenSession
 conf_dir = f"{os.getenv('HOME')}/Data/var/conf"
 env_file = os.getenv("WEIGHTR_BACKEND_CONF_FILE", f"{conf_dir}/weightr-backend/.env.dev")
 settings = Settings(_env_file=env_file, _env_file_encoding="utf-8")
-config_path = Path(__file__).resolve().parent.parent.parent / "conf" / "logging" / f"{settings.app_env}.yaml"
+config_path = Path(__file__).resolve().parent.parent.parent / "conf" / "logging" / f"{settings.logging_conf_file}"
 
 with open(config_path, "r") as f:
     config = yaml.safe_load(f)
