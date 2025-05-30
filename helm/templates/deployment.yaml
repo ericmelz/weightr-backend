@@ -64,7 +64,7 @@ spec:
               readOnly: true
           args:
             - "--root-path"
-            - "/weightr-backend"
+            - "{{ .Values.ingress.path }}"
           ports:
           - containerPort: 8088
             name: web

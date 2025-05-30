@@ -6,3 +6,7 @@ deploymentEnv: prod
 
 storage:
   hostPath: /mnt/nas_server/var/conf/weightr-backend
+
+ingress:
+  host: api.weightr.ai
+  path: /
